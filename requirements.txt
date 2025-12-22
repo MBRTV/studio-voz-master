@@ -1,0 +1,5 @@
+streamlit
+edge-tts
+deep-translator
+PyPDF2
+python-docx
