@@ -28,40 +28,7 @@ if 'clean_start' not in st.session_state:
     st.session_state.contenido_fuente = "" 
     st.session_state.clean_start = True
 
-# --- 1. CABECERA Y DISEÑO ---
-css_accesible = """
-<style>
-/* Etiquetas grandes y claras */
-.stSelectbox label, .stTextArea label, .stSlider label {
-    font-size: 1.1rem !important;
-    font-weight: bold !important;
-    color: #FFFFFF !important; 
-    margin-bottom: 0.4rem !important;
-}
-/* Foco visible de alto contraste */
-div[data-baseweb="select"] > div:focus-within, textarea:focus, input:focus, button:focus {
-    outline: 3px solid #FFFF00 !important; 
-    outline-offset: 2px;
-}
-.block-container { padding-top: 3rem !important; padding-bottom: 2rem !important; }
-div[data-testid="stVerticalBlock"] { gap: 1.5rem !important; }
-textarea { font-size: 1.2rem !important; }
-</style>
-"""
-
-css_oled = """
-<style>
-.stApp { background-color: #000000; color: #E0E0E0; }
-div[data-testid="stTextArea"] textarea { background-color: #111111; color: #FFFFFF; border: 1px solid #333333; }
-div[data-testid="stSelectbox"] > div > div { background-color: #111111; color: white; }
-div[data-testid="stSlider"] > div { color: #E0E0E0; }
-div[data-testid="stMarkdownContainer"] p { color: #E0E0E0; }
-h1, h2, h3, h4, h5 { color: #FFFFFF !important; }
-</style>
-"""
-
-css_claro = """<style>.stApp { background-color: #FFFFFF; color: #000000; } label { color: #000000 !important; }</style>"""
-
+# --- 1. CABECERA Y DISEÑO ADAPTATIVO ---
 c_tit, c_sel = st.columns([6, 2], gap="medium")
 with c_tit:
     st.markdown("<h1>🎚️ Studio Voz Master</h1>", unsafe_allow_html=True)
@@ -69,12 +36,64 @@ with c_sel:
     st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
     tema_sel = st.selectbox("Apariencia visual", ["OLED (Negro)", "Claro", "Sistema"], help="Cambia el contraste y colores.")
 
+# CSS COMÚN
+css_base = """
+<style>
+.stSelectbox label, .stTextArea label, .stSlider label {
+    font-size: 1.1rem !important; font-weight: bold !important; margin-bottom: 0.4rem !important;
+}
+div[data-baseweb="select"] > div:focus-within, textarea:focus, input:focus, button:focus {
+    outline: 3px solid #FFFF00 !important; outline-offset: 2px;
+}
+.block-container { padding-top: 3rem !important; padding-bottom: 2rem !important; }
+div[data-testid="stVerticalBlock"] { gap: 1.5rem !important; }
+textarea { font-size: 1.2rem !important; }
+</style>
+"""
+
+# CSS ESPECÍFICO (COLORES Y BOTONES)
 if "Negro" in tema_sel:
-    st.markdown(css_accesible + css_oled, unsafe_allow_html=True)
+    # MODO OSCURO: Botón Amarillo con letras Negras (Alto Contraste)
+    css_tema = """
+    <style>
+    .stApp { background-color: #000000; color: #E0E0E0; }
+    div[data-testid="stTextArea"] textarea { background-color: #111111; color: #FFFFFF; border: 1px solid #333333; }
+    div[data-testid="stSelectbox"] > div > div { background-color: #111111; color: white; }
+    div[data-testid="stSlider"] > div { color: #E0E0E0; }
+    h1, h2, h3, h4, h5, label { color: #FFFFFF !important; }
+    
+    /* ESTILO BOTÓN PROCESAR (OLED) */
+    div.stButton > button[kind="primary"] {
+        background-color: #FFD700 !important; /* Amarillo Oro */
+        color: #000000 !important; /* Texto Negro */
+        font-weight: 900 !important;
+        border: none;
+    }
+    div.stButton > button[kind="primary"]:hover {
+        background-color: #FFC000 !important;
+        color: #000000 !important;
+    }
+    </style>
+    """
 elif "Claro" in tema_sel:
-    st.markdown(css_accesible + css_claro, unsafe_allow_html=True)
+    # MODO CLARO: Botón Azul con letras Blancas
+    css_tema = """
+    <style>
+    .stApp { background-color: #FFFFFF; color: #000000; } 
+    label { color: #000000 !important; }
+    
+    /* ESTILO BOTÓN PROCESAR (CLARO) */
+    div.stButton > button[kind="primary"] {
+        background-color: #0056b3 !important; /* Azul Oscuro */
+        color: #FFFFFF !important; /* Texto Blanco */
+        font-weight: bold !important;
+    }
+    </style>
+    """
 else:
-    st.markdown(css_accesible, unsafe_allow_html=True)
+    css_tema = ""
+
+st.markdown(css_base + css_tema, unsafe_allow_html=True)
 
 
 # --- 2. VOCES ---
@@ -86,7 +105,6 @@ VOCES_LATINAS_ESTRUCTURA = {
     "USA Latino": {"Paloma (Mujer)": "es-US-PalomaNeural", "Alonso (Hombre)": "es-US-AlonsoNeural"},
     "Otros Países": {"Venezuela - Paola": "es-VE-PaolaNeural", "Perú - Camila": "es-PE-CamilaNeural", "Chile - Catalina": "es-CL-CatalinaNeural"}
 }
-
 VOCES_EXTRANJERAS_ESTRUCTURA = {
     "Inglés (USA)": {"Jenny (Mujer)": {"code": "en-US-JennyNeural", "lang": "en"}, "Guy (Hombre)": {"code": "en-US-GuyNeural", "lang": "en"}},
     "Inglés (UK)": {"Ryan (Hombre)": {"code": "en-GB-RyanNeural", "lang": "en"}, "Sonia (Mujer)": {"code": "en-GB-SoniaNeural", "lang": "en"}},
@@ -100,13 +118,11 @@ for pais, voces in VOCES_LATINAS_ESTRUCTURA.items():
         clave_nueva = f"{pais} - {nombre_voz}"
         VOCES_EXTRANJERAS_ESTRUCTURA["Español (Latino/España)"][clave_nueva] = {"code": codigo, "lang": "es"}
 
-
 # --- 3. FUNCIONES ---
 def extraer_texto_archivo(uploaded_file):
     try:
         texto = ""
-        if uploaded_file.type == "text/plain":
-            texto = str(uploaded_file.read(), "utf-8")
+        if uploaded_file.type == "text/plain": texto = str(uploaded_file.read(), "utf-8")
         elif uploaded_file.type == "application/pdf":
             pdf_reader = PyPDF2.PdfReader(uploaded_file)
             for page in pdf_reader.pages: texto += page.extract_text() + "\n"
@@ -114,8 +130,7 @@ def extraer_texto_archivo(uploaded_file):
             doc = docx.Document(uploaded_file)
             for para in doc.paragraphs: texto += para.text + "\n"
         return texto
-    except Exception as e:
-        return f"Error leyendo archivo: {e}"
+    except Exception as e: return f"Error: {e}"
 
 def generar_nombre_archivo(nombre_voz_full, velocidad, tono):
     nombre_clean = re.sub(r'[^\w\s-]', '', nombre_voz_full).strip()
@@ -150,7 +165,7 @@ with col_izq:
     
     tab_escribir, tab_subir = st.tabs(["✍️ Escribir Texto", "📂 Subir Archivo"])
     with tab_subir:
-        archivo = st.file_uploader("Cargar documento (TXT, PDF, Word)", type=["txt", "pdf", "docx"])
+        archivo = st.file_uploader("Cargar documento", type=["txt", "pdf", "docx"])
         if archivo is not None:
             texto_extraido = extraer_texto_archivo(archivo)
             if texto_extraido:
@@ -158,7 +173,7 @@ with col_izq:
                 st.success("Documento cargado.")
     with tab_escribir:
         def actualizar_texto(): st.session_state.contenido_fuente = st.session_state.txt_input_widget
-        texto_usuario = st.text_area("Escriba o pegue el texto aquí", value=st.session_state.contenido_fuente, height=300, key="txt_input_widget", on_change=actualizar_texto, help="Cuadro de edición de texto.")
+        texto_usuario = st.text_area("Escriba o pegue el texto aquí", value=st.session_state.contenido_fuente, height=300, key="txt_input_widget", on_change=actualizar_texto, help="Cuadro de edición.")
         texto_a_procesar = st.session_state.contenido_fuente
 
 with col_der:
@@ -172,7 +187,6 @@ with col_der:
     voz_dest_nombre_completa = f"{idioma_destino} - {voz_dest_nombre_corta}"
     st.text_area("Texto resultante de la traducción", value=st.session_state.texto_traducido, height=368, help="Solo lectura.")
 
-# CONTROLES
 st.markdown("---")
 c_ajustes, c_boton = st.columns([2, 1], gap="medium")
 
@@ -181,25 +195,22 @@ with c_ajustes:
     k1, k2 = st.columns(2)
     with k1:
         s1, b1 = st.columns([5,1])
-        velocidad = s1.slider("Velocidad", -100, 100, key="rate_val", step=1, help="Velocidad de lectura")
-        # BOTÓN R PARA RESTABLECER VELOCIDAD
+        velocidad = s1.slider("Velocidad", -100, 100, key="rate_val", step=1)
         b1.button("R", key="rv", on_click=reset_rate, help="Restablecer velocidad a cero")
     with k2:
         s2, b2 = st.columns([5,1])
-        tono = s2.slider("Tono (Pitch)", -50, 50, key="pitch_val", step=1, help="Agudeza de la voz")
-        # BOTÓN R PARA RESTABLECER TONO
+        tono = s2.slider("Tono (Pitch)", -50, 50, key="pitch_val", step=1)
         b2.button("R", key="rp", on_click=reset_pitch, help="Restablecer tono a cero")
 
 with c_boton:
     st.write("") 
     st.write("")
-    if st.button("⚡ PROCESAR AUDIO Y TRADUCCIÓN", type="primary", use_container_width=True):
+    if st.button("⚡ PROCESAR AUDIOS Y TRADUCCIÓN", type="primary", use_container_width=True):
         if not texto_a_procesar.strip():
             st.warning("El campo de texto está vacío.")
         else:
             with st.spinner('Procesando...'):
                 try:
-                    # Traducción
                     if lang_dest == 'es': resultado_traduccion = texto_a_procesar
                     else:
                         translator = GoogleTranslator(source='auto', target=lang_dest)
@@ -207,8 +218,6 @@ with c_boton:
                         else: resultado_traduccion = translator.translate(texto_a_procesar)
 
                     st.session_state.texto_traducido = resultado_traduccion
-
-                    # Audio
                     audio_es = asyncio.run(generar_audio_engine(texto_a_procesar, voz_org_code, velocidad, tono))
                     audio_tr = asyncio.run(generar_audio_engine(resultado_traduccion, voz_dest_code, velocidad, tono))
 
@@ -231,23 +240,20 @@ with c_boton:
                             "dest_name": fn_dest
                         })
                         
-                        # --- ANUNCIO DE FINALIZACIÓN PARA JAWS (ARIA LIVE REGION) ---
-                        # Inyectamos un div invisible con role="alert". Esto fuerza a JAWS a leerlo inmediatamente.
-                        st.markdown("""
-                            <div role="alert" style="border:1px solid transparent; padding:0.5rem; background-color: #d4edda; color: #155724; font-weight: bold; text-align: center; margin-bottom: 10px;">
-                                ¡Tarea finalizada con éxito! Los audios están listos al final de la pantalla.
+                        # --- ALERTA INTELIGENTE SEGÚN TEMA ---
+                        if "Negro" in tema_sel:
+                            # Estilo para fondo oscuro: Fondo Verde Oscuro, Texto Claro
+                            estilo_alerta = "background-color: #054b0c; color: #e6ffed; border: 1px solid #0f6c18;"
+                        else:
+                            # Estilo para fondo claro: Fondo Verde Claro, Texto Oscuro
+                            estilo_alerta = "background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;"
+
+                        st.markdown(f"""
+                            <div role="alert" style="{estilo_alerta} padding: 15px; border-radius: 5px; text-align: center; margin-bottom: 20px; font-weight: bold;">
+                                ✅ Tarea finalizada con éxito. Los audios están listos al final de la pantalla.
                             </div>
                         """, unsafe_allow_html=True)
-                        
-                        # Mantenemos el toast visual por si acaso
                         st.toast("¡Tarea completada!", icon="✅")
-                        # Recarga necesaria para mostrar los audios
-                        # (Nota: en Streamlit, el 'alert' puede leerse justo antes de la recarga. 
-                        # Si JAWS se corta, es porque 'st.rerun()' refresca la página muy rápido.
-                        # En ese caso, confiamos en que el 'alert' aparece en el nuevo renderizado).
-                        
-                        # IMPORTANTE: Eliminé el st.rerun() inmediato aquí para permitir que el mensaje se renderice y JAWS lo lea.
-                        # Al quitar st.rerun(), Streamlit renderizará el resto del script (los audios) en esta misma ejecución.
 
                 except Exception as e:
                     st.error(f"Error: {e}")
