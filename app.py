@@ -5,9 +5,16 @@ import io
 import re
 from datetime import datetime
 from deep_translator import GoogleTranslator
+import PyPDF2
+import docx
 
 # --- Configuración de Página ---
-st.set_page_config(page_title="Studio Voz Master", page_icon="🎚️", layout="wide")
+st.set_page_config(
+    page_title="Studio Voz Master - Accesible", 
+    page_icon="🎚️", 
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
 # --- 0. INICIALIZACIÓN DE ESTADO ---
 if 'clean_start' not in st.session_state:
@@ -18,16 +25,20 @@ if 'clean_start' not in st.session_state:
     st.session_state.nombres_archivos = {"org": "", "dest": ""}
     st.session_state.rate_val = 0
     st.session_state.pitch_val = 0
+    st.session_state.contenido_fuente = "" 
     st.session_state.clean_start = True
 
-# --- 1. CABECERA Y DISEÑO (Alineación Perfecta) ---
-
-# CSS LÓGICA
+# --- 1. CABECERA Y DISEÑO (CSS Adaptado para Accesibilidad) ---
 css_base = """
 <style>
-/* Espacio superior para que no se corte el título */
+/* Ajuste para que las etiquetas sean visibles pero no ocupen mucho espacio */
+.stSelectbox label, .stTextArea label, .stSlider label {
+    font-size: 1rem !important;
+    font-weight: bold !important;
+    margin-bottom: 0.2rem !important;
+}
 .block-container { padding-top: 3rem !important; padding-bottom: 2rem !important; }
-div[data-testid="stVerticalBlock"] { gap: 0.5rem !important; }
+div[data-testid="stVerticalBlock"] { gap: 1rem !important; }
 textarea { font-size: 1.1rem !important; }
 </style>
 """
@@ -39,25 +50,24 @@ div[data-testid="stTextArea"] textarea { background-color: #111111; color: #FFFF
 div[data-testid="stSelectbox"] > div > div { background-color: #111111; color: white; }
 div[data-testid="stSlider"] > div { color: #E0E0E0; }
 div[data-testid="stMarkdownContainer"] p { color: #E0E0E0; }
-h1, h2, h3 { color: #FFFFFF !important; }
+h1, h2, h3, h4, h5, label { color: #FFFFFF !important; }
+div[data-testid="stFileUploader"] { background-color: #111111; padding: 10px; border-radius: 5px; }
+/* Mejorar contraste del foco para baja visión */
+button:focus, input:focus, textarea:focus, select:focus {
+    outline: 2px solid #FF4B4B !important;
+}
 </style>
 """
 
 css_claro = """<style>.stApp { background-color: #FFFFFF; color: #000000; }</style>"""
 
-# Layout de Cabecera
 c_tit, c_sel = st.columns([6, 2], gap="medium")
-
 with c_tit:
-    # Título
     st.markdown("<h1>🎚️ Studio Voz Master</h1>", unsafe_allow_html=True)
-
 with c_sel:
-    # AQUÍ ESTÁ EL AJUSTE: Un espaciador invisible para bajar el selector
     st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
-    tema_sel = st.selectbox("Tema", ["OLED (Negro)", "Claro", "Sistema"], label_visibility="collapsed")
+    tema_sel = st.selectbox("Apariencia visual", ["OLED (Negro)", "Claro", "Sistema"], help="Cambia el contraste y colores de la aplicación")
 
-# Inyección de CSS según selección
 if "Negro" in tema_sel:
     st.markdown(css_base + css_oled, unsafe_allow_html=True)
 elif "Claro" in tema_sel:
@@ -66,45 +76,62 @@ else:
     st.markdown(css_base, unsafe_allow_html=True)
 
 
-# --- 2. DEFINICIÓN DE VOCES ---
+# --- 2. VOCES ---
 VOCES_LATINAS = {
-    "🇨🇴 CO - Salomé": "es-CO-SalomeNeural",
-    "🇨🇴 CO - Gonzalo": "es-CO-GonzaloNeural",
-    "🇲🇽 MX - Dalia": "es-MX-DaliaNeural",
-    "🇲🇽 MX - Jorge": "es-MX-JorgeNeural",
-    "🇦🇷 AR - Elena": "es-AR-ElenaNeural",
-    "🇦🇷 AR - Tomas": "es-AR-TomasNeural",
-    "🇪🇸 ES - Alvaro": "es-ES-AlvaroNeural",
-    "🇪🇸 ES - Elvira": "es-ES-ElviraNeural",
-    "🇺🇸 US - Paloma": "es-US-PalomaNeural",
-    "🇺🇸 US - Alonso": "es-US-AlonsoNeural",
-    "🇻🇪 VE - Paola": "es-VE-PaolaNeural",
-    "🇵🇪 PE - Camila": "es-PE-CamilaNeural",
-    "🇨🇱 CL - Catalina": "es-CL-CatalinaNeural"
+    "Colombia - Salomé (Mujer)": "es-CO-SalomeNeural",
+    "Colombia - Gonzalo (Hombre)": "es-CO-GonzaloNeural",
+    "México - Dalia (Mujer)": "es-MX-DaliaNeural",
+    "México - Jorge (Hombre)": "es-MX-JorgeNeural",
+    "Argentina - Elena (Mujer)": "es-AR-ElenaNeural",
+    "Argentina - Tomas (Hombre)": "es-AR-TomasNeural",
+    "España - Alvaro (Hombre)": "es-ES-AlvaroNeural",
+    "España - Elvira (Mujer)": "es-ES-ElviraNeural",
+    "USA - Paloma (Mujer Latina)": "es-US-PalomaNeural",
+    "USA - Alonso (Hombre Latino)": "es-US-AlonsoNeural",
+    "Venezuela - Paola (Mujer)": "es-VE-PaolaNeural",
+    "Perú - Camila (Mujer)": "es-PE-CamilaNeural",
+    "Chile - Catalina (Mujer)": "es-CL-CatalinaNeural"
 }
 
 VOCES_EXTRANJERAS = {
-    "🇺🇸 EN - USA (Jenny)":  {"voz": "en-US-JennyNeural", "lang": "en"},
-    "🇺🇸 EN - USA (Guy)":    {"voz": "en-US-GuyNeural",   "lang": "en"},
-    "🇬🇧 EN - UK (Ryan)":    {"voz": "en-GB-RyanNeural",  "lang": "en"},
-    "🇫🇷 FR - France (Denise)": {"voz": "fr-FR-DeniseNeural", "lang": "fr"},
-    "🇫🇷 FR - France (Henri)":  {"voz": "fr-FR-HenriNeural",  "lang": "fr"},
-    "🇧🇷 PT - Brasil (Francisca)": {"voz": "pt-BR-FranciscaNeural", "lang": "pt"},
-    "🇵🇹 PT - Portugal (Raquel)":  {"voz": "pt-PT-RaquelNeural",    "lang": "pt"},
-    "🇮🇹 IT - Italia (Isabella)": {"voz": "it-IT-IsabellaNeural", "lang": "it"},
-    "🇮🇹 IT - Italia (Diego)":    {"voz": "it-IT-DiegoNeural",    "lang": "it"},
-    "🇷🇴 RO - Rumano (Alina)": {"voz": "ro-RO-AlinaNeural", "lang": "ro"},
-    "🇩🇪 DE - Alemán (Katja)": {"voz": "de-DE-KatjaNeural", "lang": "de"}
+    "Inglés USA - Jenny":  {"voz": "en-US-JennyNeural", "lang": "en"},
+    "Inglés USA - Guy":    {"voz": "en-US-GuyNeural",   "lang": "en"},
+    "Inglés UK - Ryan":    {"voz": "en-GB-RyanNeural",  "lang": "en"},
+    "Francés - Denise": {"voz": "fr-FR-DeniseNeural", "lang": "fr"},
+    "Francés - Henri":  {"voz": "fr-FR-HenriNeural",  "lang": "fr"},
+    "Portugués Brasil - Francisca": {"voz": "pt-BR-FranciscaNeural", "lang": "pt"},
+    "Portugués Portugal - Raquel":  {"voz": "pt-PT-RaquelNeural",    "lang": "pt"},
+    "Italiano - Isabella": {"voz": "it-IT-IsabellaNeural", "lang": "it"},
+    "Italiano - Diego":    {"voz": "it-IT-DiegoNeural",    "lang": "it"},
+    "Rumano - Alina": {"voz": "ro-RO-AlinaNeural", "lang": "ro"},
+    "Alemán - Katja": {"voz": "de-DE-KatjaNeural", "lang": "de"}
 }
 
 VOCES_ORIGEN = VOCES_LATINAS
 VOCES_DESTINO = VOCES_EXTRANJERAS.copy()
+# Agregamos voces latinas al destino con nombres claros
 for nombre, codigo in VOCES_LATINAS.items():
-    nombre_limpio = nombre.replace("🇨🇴", "").replace("🇲🇽", "").replace("🇦🇷", "").replace("🇪🇸", "").replace("🇺🇸", "").strip()
-    key_name = f"🇪🇸 ES - {nombre_limpio}"
-    VOCES_DESTINO[key_name] = {"voz": codigo, "lang": "es"}
+    nombre_claro = f"Español - {nombre}"
+    VOCES_DESTINO[nombre_claro] = {"voz": codigo, "lang": "es"}
 
 # --- 3. FUNCIONES LÓGICAS ---
+def extraer_texto_archivo(uploaded_file):
+    try:
+        texto = ""
+        if uploaded_file.type == "text/plain":
+            texto = str(uploaded_file.read(), "utf-8")
+        elif uploaded_file.type == "application/pdf":
+            pdf_reader = PyPDF2.PdfReader(uploaded_file)
+            for page in pdf_reader.pages:
+                texto += page.extract_text() + "\n"
+        elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+            doc = docx.Document(uploaded_file)
+            for para in doc.paragraphs:
+                texto += para.text + "\n"
+        return texto
+    except Exception as e:
+        return f"Error leyendo archivo: {e}"
+
 def generar_nombre_archivo(nombre_voz_full, velocidad, tono):
     nombre_clean = re.sub(r'[^\w\s-]', '', nombre_voz_full).strip()
     nombre_clean = nombre_clean.replace(" ", "_").replace("-", "")
@@ -128,58 +155,104 @@ def reset_rate(): st.session_state.rate_val = 0
 def reset_pitch(): st.session_state.pitch_val = 0
 
 # --- 4. INTERFAZ ---
-
 col_izq, col_der = st.columns(2, gap="small")
 
 with col_izq:
-    st.markdown("### 1. Panel Izquierdo")
-    voz_org_nombre = st.selectbox("Voz 1", list(VOCES_ORIGEN.keys()), label_visibility="collapsed")
+    st.markdown("### 1. Panel de Origen")
+    
+    # ETIQUETA VISIBLE para JAWS
+    voz_org_nombre = st.selectbox(
+        "Seleccione la voz para el texto original", 
+        list(VOCES_ORIGEN.keys()),
+        help="Elija la voz que leerá el texto que usted escriba en el panel izquierdo."
+    )
     voz_org_code = VOCES_ORIGEN[voz_org_nombre]
     
-    texto_usuario = st.text_area("Fuente:", height=300, placeholder="Escribe aquí...", key="txt_in")
+    tab_escribir, tab_subir = st.tabs(["✍️ Escribir Texto", "📂 Subir Archivo"])
+    
+    with tab_subir:
+        archivo = st.file_uploader("Cargar documento (TXT, PDF, Word)", type=["txt", "pdf", "docx"], help="El texto del archivo se extraerá automáticamente.")
+        if archivo is not None:
+            texto_extraido = extraer_texto_archivo(archivo)
+            if texto_extraido:
+                st.session_state.contenido_fuente = texto_extraido
+                st.success("Documento cargado correctamente. Verifique la pestaña Escribir.")
+            else:
+                st.error("No se pudo leer el archivo.")
+
+    with tab_escribir:
+        def actualizar_texto():
+            st.session_state.contenido_fuente = st.session_state.txt_input_widget
+            
+        texto_usuario = st.text_area(
+            "Escriba o pegue el texto aquí", 
+            value=st.session_state.contenido_fuente,
+            height=300, 
+            key="txt_input_widget",
+            on_change=actualizar_texto,
+            help="Este es el texto principal que será convertido a voz y traducido."
+        )
+        texto_a_procesar = st.session_state.contenido_fuente
 
 with col_der:
-    st.markdown("### 2. Panel Derecho")
-    voz_dest_nombre = st.selectbox("Voz 2", list(VOCES_DESTINO.keys()), label_visibility="collapsed")
+    st.markdown("### 2. Panel de Destino")
+    
+    # ETIQUETA VISIBLE para JAWS
+    voz_dest_nombre = st.selectbox(
+        "Seleccione el idioma y voz de destino", 
+        list(VOCES_DESTINO.keys()),
+        help="Esta voz leerá la traducción del texto. Si elige Español, solo leerá sin traducir."
+    )
     info_dest = VOCES_DESTINO[voz_dest_nombre]
     
-    st.text_area("Resultado:", value=st.session_state.texto_traducido, height=300)
+    st.text_area(
+        "Texto resultante de la traducción", 
+        value=st.session_state.texto_traducido, 
+        height=368,
+        help="Aquí aparecerá el texto traducido automáticamente después de procesar."
+    )
 
-# CONTROLES
+# CONTROLES ACCESIBLES
+st.markdown("---")
 c_ajustes, c_boton = st.columns([2, 1], gap="medium")
 
 with c_ajustes:
-    st.markdown("### Ajustes")
+    st.markdown("### Ajustes de Voz")
     k1, k2 = st.columns(2)
     with k1:
         s1, b1 = st.columns([5,1])
-        velocidad = s1.slider("Velocidad (%)", -100, 100, key="rate_val", step=1)
-        b1.button("↺", key="rv", on_click=reset_rate)
+        velocidad = s1.slider("Velocidad de lectura", -100, 100, key="rate_val", step=1, help="Aumenta o disminuye la rapidez de la voz.")
+        b1.button("↺", key="rv", on_click=reset_rate, help="Restablecer velocidad a cero")
     with k2:
         s2, b2 = st.columns([5,1])
-        tono = s2.slider("Tono (Hz)", -50, 50, key="pitch_val", step=1)
-        b2.button("↺", key="rp", on_click=reset_pitch)
+        tono = s2.slider("Tono de voz (Pitch)", -50, 50, key="pitch_val", step=1, help="Hace la voz más aguda o más grave.")
+        b2.button("↺", key="rp", on_click=reset_pitch, help="Restablecer tono a cero")
 
 with c_boton:
     st.write("") 
     st.write("")
-    if st.button("⚡ PROCESAR", type="primary", use_container_width=True):
-        if not texto_usuario.strip():
-            st.warning("El texto está vacío.")
+    # Botón con etiqueta clara
+    if st.button("⚡ PROCESAR AUDIO Y TRADUCCIÓN", type="primary", use_container_width=True, help="Presione para generar las voces y la traducción."):
+        if not texto_a_procesar.strip():
+            st.warning("El campo de texto está vacío. Por favor escriba algo.")
         else:
-            with st.spinner('Procesando...'):
+            with st.spinner('Procesando... por favor espere.'):
                 try:
                     # Traducción
                     if info_dest['lang'] == 'es':
-                        resultado_traduccion = texto_usuario
+                        resultado_traduccion = texto_a_procesar
                     else:
                         translator = GoogleTranslator(source='auto', target=info_dest['lang'])
-                        resultado_traduccion = translator.translate(texto_usuario)
+                        if len(texto_a_procesar) > 4500:
+                            st.warning("Aviso: Texto muy largo. Se tradujeron los primeros 4500 caracteres.")
+                            resultado_traduccion = translator.translate(texto_a_procesar[:4500])
+                        else:
+                            resultado_traduccion = translator.translate(texto_a_procesar)
 
                     st.session_state.texto_traducido = resultado_traduccion
 
                     # Audio
-                    audio_es = asyncio.run(generar_audio_engine(texto_usuario, voz_org_code, velocidad, tono))
+                    audio_es = asyncio.run(generar_audio_engine(texto_a_procesar, voz_org_code, velocidad, tono))
                     audio_tr = asyncio.run(generar_audio_engine(resultado_traduccion, info_dest['voz'], velocidad, tono))
 
                     if audio_es and audio_tr:
@@ -193,8 +266,8 @@ with c_boton:
                         now = datetime.now().strftime("%H:%M:%S")
                         st.session_state.historial.insert(0, {
                             "hora": now,
-                            "org_txt": texto_usuario,
-                            "dest_txt": resultado_traduccion,
+                            "org_txt": texto_a_procesar[:50] + "...",
+                            "dest_txt": resultado_traduccion[:50] + "...",
                             "org_aud": audio_es,
                             "dest_aud": audio_tr,
                             "org_name": fn_org,
@@ -203,29 +276,46 @@ with c_boton:
                         st.rerun()
 
                 except Exception as e:
-                    st.error(f"Error: {e}")
+                    st.error(f"Ocurrió un error: {e}")
 
-# RESULTADOS
+# RESULTADOS ACCESIBLES
 if st.session_state.audio_origen and st.session_state.audio_destino:
     st.divider()
+    st.markdown("### Resultados Generados")
     r1, r2 = st.columns(2, gap="medium")
     with r1:
+        st.write("**Audio Original:**")
         st.audio(st.session_state.audio_origen, format='audio/mp3')
-        st.download_button(f"⬇️ {st.session_state.nombres_archivos['org']}", st.session_state.audio_origen, file_name=st.session_state.nombres_archivos['org'], mime="audio/mp3", type="secondary", use_container_width=True)
+        st.download_button(
+            label=f"Descargar Audio Izquierdo ({st.session_state.nombres_archivos['org']})", 
+            data=st.session_state.audio_origen, 
+            file_name=st.session_state.nombres_archivos['org'], 
+            mime="audio/mp3", 
+            type="secondary", 
+            use_container_width=True
+        )
     with r2:
+        st.write("**Audio Resultado:**")
         st.audio(st.session_state.audio_destino, format='audio/mp3')
-        st.download_button(f"⬇️ {st.session_state.nombres_archivos['dest']}", st.session_state.audio_destino, file_name=st.session_state.nombres_archivos['dest'], mime="audio/mp3", type="secondary", use_container_width=True)
+        st.download_button(
+            label=f"Descargar Audio Derecho ({st.session_state.nombres_archivos['dest']})", 
+            data=st.session_state.audio_destino, 
+            file_name=st.session_state.nombres_archivos['dest'], 
+            mime="audio/mp3", 
+            type="secondary", 
+            use_container_width=True
+        )
 
 # HISTORIAL
 if st.session_state.historial:
     st.markdown("---")
-    st.markdown("### 📂 Biblioteca")
+    st.markdown("### Biblioteca de Audios Recientes")
     for i, item in enumerate(st.session_state.historial):
-        with st.expander(f"{item['hora']} | {item['org_name']} | {item['dest_name']}"):
+        with st.expander(f"Generado a las {item['hora']} - {item['org_name']}"):
             h1, h2 = st.columns(2)
             with h1:
-                st.caption(item['org_txt'])
-                st.download_button("⬇️ Descargar Izq", item['org_aud'], file_name=item['org_name'], key=f"ho_{i}")
+                st.caption(f"Texto: {item['org_txt']}")
+                st.download_button("Descargar Audio Izquierdo", item['org_aud'], file_name=item['org_name'], key=f"ho_{i}")
             with h2:
-                st.caption(item['dest_txt'])
-                st.download_button("⬇️ Descargar Der", item['dest_aud'], file_name=item['dest_name'], key=f"hd_{i}")
+                st.caption(f"Texto: {item['dest_txt']}")
+                st.download_button("Descargar Audio Derecho", item['dest_aud'], file_name=item['dest_name'], key=f"hd_{i}")
