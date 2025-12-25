@@ -28,15 +28,9 @@ if 'clean_start' not in st.session_state:
     st.session_state.contenido_fuente = "" 
     st.session_state.clean_start = True
 
-# --- 1. CABECERA Y DISEÑO ADAPTATIVO ---
-c_tit, c_sel = st.columns([6, 2], gap="medium")
-with c_tit:
-    st.markdown("<h1>🎚️ Studio Voz Master</h1>", unsafe_allow_html=True)
-with c_sel:
-    st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
-    tema_sel = st.selectbox("Apariencia visual", ["OLED (Negro)", "Claro", "Sistema"], help="Cambia el contraste y colores.")
+# --- 1. DEFINICIÓN DE ESTILOS (CSS) ---
+# Definimos los estilos AQUÍ ARRIBA, sin sangría, para evitar que se impriman como texto.
 
-# CSS COMÚN
 css_base = """
 <style>
 .stSelectbox label, .stTextArea label, .stSlider label {
@@ -51,52 +45,62 @@ textarea { font-size: 1.2rem !important; }
 </style>
 """
 
-# CSS ESPECÍFICO (COLORES Y BOTONES)
+# Estilo para Modo Oscuro (OLED)
+css_oled = """
+<style>
+.stApp { background-color: #000000; color: #E0E0E0; }
+div[data-testid="stTextArea"] textarea { background-color: #111111; color: #FFFFFF; border: 1px solid #333333; }
+div[data-testid="stSelectbox"] > div > div { background-color: #111111; color: white; }
+div[data-testid="stSlider"] > div { color: #E0E0E0; }
+h1, h2, h3, h4, h5, label { color: #FFFFFF !important; }
+
+/* ESTILO BOTÓN PROCESAR (OLED) */
+div.stButton > button[kind="primary"] {
+    background-color: #FFD700 !important; /* Amarillo Oro */
+    color: #000000 !important; /* Texto Negro */
+    font-weight: 900 !important;
+    border: none;
+}
+div.stButton > button[kind="primary"]:hover {
+    background-color: #FFC000 !important;
+    color: #000000 !important;
+}
+</style>
+"""
+
+# Estilo para Modo Claro
+css_claro = """
+<style>
+.stApp { background-color: #FFFFFF; color: #000000; } 
+label { color: #000000 !important; }
+
+/* ESTILO BOTÓN PROCESAR (CLARO) */
+div.stButton > button[kind="primary"] {
+    background-color: #0056b3 !important; /* Azul Oscuro */
+    color: #FFFFFF !important; /* Texto Blanco */
+    font-weight: bold !important;
+}
+</style>
+"""
+
+# --- 2. CABECERA Y APLICACIÓN DE TEMA ---
+c_tit, c_sel = st.columns([6, 2], gap="medium")
+with c_tit:
+    st.markdown("<h1>🎚️ Studio Voz Master</h1>", unsafe_allow_html=True)
+with c_sel:
+    st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
+    tema_sel = st.selectbox("Apariencia visual", ["OLED (Negro)", "Claro", "Sistema"], help="Cambia el contraste y colores.")
+
+# Inyectamos el CSS según la selección
 if "Negro" in tema_sel:
-    # MODO OSCURO: Botón Amarillo con letras Negras (Alto Contraste)
-    css_tema = """
-    <style>
-    .stApp { background-color: #000000; color: #E0E0E0; }
-    div[data-testid="stTextArea"] textarea { background-color: #111111; color: #FFFFFF; border: 1px solid #333333; }
-    div[data-testid="stSelectbox"] > div > div { background-color: #111111; color: white; }
-    div[data-testid="stSlider"] > div { color: #E0E0E0; }
-    h1, h2, h3, h4, h5, label { color: #FFFFFF !important; }
-    
-    /* ESTILO BOTÓN PROCESAR (OLED) */
-    div.stButton > button[kind="primary"] {
-        background-color: #FFD700 !important; /* Amarillo Oro */
-        color: #000000 !important; /* Texto Negro */
-        font-weight: 900 !important;
-        border: none;
-    }
-    div.stButton > button[kind="primary"]:hover {
-        background-color: #FFC000 !important;
-        color: #000000 !important;
-    }
-    </style>
-    """
+    st.markdown(css_base + css_oled, unsafe_allow_html=True)
 elif "Claro" in tema_sel:
-    # MODO CLARO: Botón Azul con letras Blancas
-    css_tema = """
-    <style>
-    .stApp { background-color: #FFFFFF; color: #000000; } 
-    label { color: #000000 !important; }
-    
-    /* ESTILO BOTÓN PROCESAR (CLARO) */
-    div.stButton > button[kind="primary"] {
-        background-color: #0056b3 !important; /* Azul Oscuro */
-        color: #FFFFFF !important; /* Texto Blanco */
-        font-weight: bold !important;
-    }
-    </style>
-    """
+    st.markdown(css_base + css_claro, unsafe_allow_html=True)
 else:
-    css_tema = ""
-
-st.markdown(css_base + css_tema, unsafe_allow_html=True)
+    st.markdown(css_base, unsafe_allow_html=True)
 
 
-# --- 2. VOCES ---
+# --- 3. VOCES ---
 VOCES_LATINAS_ESTRUCTURA = {
     "Colombia": {"Salomé (Mujer)": "es-CO-SalomeNeural", "Gonzalo (Hombre)": "es-CO-GonzaloNeural"},
     "México": {"Dalia (Mujer)": "es-MX-DaliaNeural", "Jorge (Hombre)": "es-MX-JorgeNeural"},
@@ -118,7 +122,7 @@ for pais, voces in VOCES_LATINAS_ESTRUCTURA.items():
         clave_nueva = f"{pais} - {nombre_voz}"
         VOCES_EXTRANJERAS_ESTRUCTURA["Español (Latino/España)"][clave_nueva] = {"code": codigo, "lang": "es"}
 
-# --- 3. FUNCIONES ---
+# --- 4. FUNCIONES ---
 def extraer_texto_archivo(uploaded_file):
     try:
         texto = ""
@@ -152,7 +156,7 @@ async def generar_audio_engine(texto, voz, velocidad, tono):
 def reset_rate(): st.session_state.rate_val = 0
 def reset_pitch(): st.session_state.pitch_val = 0
 
-# --- 4. INTERFAZ ---
+# --- 5. INTERFAZ ---
 col_izq, col_der = st.columns(2, gap="small")
 
 with col_izq:
@@ -205,6 +209,7 @@ with c_ajustes:
 with c_boton:
     st.write("") 
     st.write("")
+    # Botón con contraste mejorado
     if st.button("⚡ PROCESAR AUDIOS Y TRADUCCIÓN", type="primary", use_container_width=True):
         if not texto_a_procesar.strip():
             st.warning("El campo de texto está vacío.")
@@ -240,12 +245,12 @@ with c_boton:
                             "dest_name": fn_dest
                         })
                         
-                        # --- ALERTA INTELIGENTE SEGÚN TEMA ---
+                        # --- ALERTA VISUAL Y ACCESIBLE ---
                         if "Negro" in tema_sel:
-                            # Estilo para fondo oscuro: Fondo Verde Oscuro, Texto Claro
+                            # Fondo Verde Oscuro para OLED
                             estilo_alerta = "background-color: #054b0c; color: #e6ffed; border: 1px solid #0f6c18;"
                         else:
-                            # Estilo para fondo claro: Fondo Verde Claro, Texto Oscuro
+                            # Fondo Verde Claro para Modo Claro
                             estilo_alerta = "background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;"
 
                         st.markdown(f"""
