@@ -29,8 +29,6 @@ if 'clean_start' not in st.session_state:
     st.session_state.clean_start = True
 
 # --- 1. ESTILOS CSS (GLOBALES Y SIN SANGRÍA) ---
-# Definimos los estilos aquí, pegados a la izquierda, para evitar errores visuales.
-
 CSS_BASE = """
 <style>
 .stSelectbox label, .stTextArea label, .stSlider label { font-size: 1.1rem !important; font-weight: bold !important; margin-bottom: 0.4rem !important; }
@@ -48,17 +46,22 @@ div[data-testid="stTextArea"] textarea { background-color: #111111; color: #FFFF
 div[data-testid="stSelectbox"] > div > div { background-color: #111111; color: white; }
 div[data-testid="stSlider"] > div { color: #E0E0E0; }
 h1, h2, h3, h4, h5, label, .stMarkdown, p { color: #FFFFFF !important; }
-/* BOTÓN PROCESAR (Amarillo/Negro - Alto Contraste) */
+
+/* BOTÓN PROCESAR (Amarillo con Texto NEGRO) */
 div.stButton > button[kind="primary"] {
     background-color: #FFD700 !important;
-    color: #000000 !important;
-    font-weight: 900 !important;
     border: 2px solid #FFFFFF;
+}
+div.stButton > button[kind="primary"] p {
+    color: #000000 !important; /* Forzamos texto negro */
+    font-weight: 900 !important;
 }
 div.stButton > button[kind="primary"]:hover {
     background-color: #FFC000 !important;
-    color: #000000 !important;
     border: 2px solid #FFFF00;
+}
+div.stButton > button[kind="primary"]:hover p {
+    color: #000000 !important;
 }
 </style>
 """
@@ -67,11 +70,17 @@ CSS_CLARO = """
 <style>
 .stApp { background-color: #FFFFFF; color: #000000; } 
 label, h1, h2, h3, p { color: #000000 !important; }
-/* BOTÓN PROCESAR (Azul/Blanco) */
+
+/* BOTÓN PROCESAR (Azul con Texto BLANCO) */
 div.stButton > button[kind="primary"] {
     background-color: #0056b3 !important;
-    color: #FFFFFF !important;
+}
+div.stButton > button[kind="primary"] p {
+    color: #FFFFFF !important; /* Forzamos texto blanco */
     font-weight: bold !important;
+}
+div.stButton > button[kind="primary"]:hover {
+    background-color: #004494 !important;
 }
 </style>
 """
@@ -211,6 +220,7 @@ with c_boton:
                     if lang_dest == 'es': resultado_traduccion = texto_a_procesar
                     else:
                         translator = GoogleTranslator(source='auto', target=lang_dest)
+                        # Control de longitud para traducción gratuita
                         if len(texto_a_procesar) > 4500: resultado_traduccion = translator.translate(texto_a_procesar[:4500])
                         else: resultado_traduccion = translator.translate(texto_a_procesar)
 
