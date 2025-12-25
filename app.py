@@ -28,7 +28,7 @@ if 'clean_start' not in st.session_state:
     st.session_state.contenido_fuente = "" 
     st.session_state.clean_start = True
 
-# --- 1. CABECERA Y DISEÑO (CSS Accesible) ---
+# --- 1. CABECERA Y DISEÑO ---
 css_accesible = """
 <style>
 /* Etiquetas grandes y claras */
@@ -38,9 +38,9 @@ css_accesible = """
     color: #FFFFFF !important; 
     margin-bottom: 0.4rem !important;
 }
-/* Foco visible de alto contraste (Criterio WCAG para baja visión) */
+/* Foco visible de alto contraste */
 div[data-baseweb="select"] > div:focus-within, textarea:focus, input:focus, button:focus {
-    outline: 3px solid #FFFF00 !important; /* Amarillo para máximo contraste */
+    outline: 3px solid #FFFF00 !important; 
     outline-offset: 2px;
 }
 .block-container { padding-top: 3rem !important; padding-bottom: 2rem !important; }
@@ -77,56 +77,22 @@ else:
     st.markdown(css_accesible, unsafe_allow_html=True)
 
 
-# --- 2. VOCES ORGANIZADAS POR CATEGORÍA ---
+# --- 2. VOCES ---
 VOCES_LATINAS_ESTRUCTURA = {
-    "Colombia": {
-        "Salomé (Mujer)": "es-CO-SalomeNeural",
-        "Gonzalo (Hombre)": "es-CO-GonzaloNeural"
-    },
-    "México": {
-        "Dalia (Mujer)": "es-MX-DaliaNeural",
-        "Jorge (Hombre)": "es-MX-JorgeNeural"
-    },
-    "Argentina": {
-        "Elena (Mujer)": "es-AR-ElenaNeural",
-        "Tomas (Hombre)": "es-AR-TomasNeural"
-    },
-    "España": {
-        "Elvira (Mujer)": "es-ES-ElviraNeural",
-        "Alvaro (Hombre)": "es-ES-AlvaroNeural"
-    },
-    "USA Latino": {
-        "Paloma (Mujer)": "es-US-PalomaNeural",
-        "Alonso (Hombre)": "es-US-AlonsoNeural"
-    },
-    "Otros Países": {
-        "Venezuela - Paola": "es-VE-PaolaNeural",
-        "Perú - Camila": "es-PE-CamilaNeural",
-        "Chile - Catalina": "es-CL-CatalinaNeural"
-    }
+    "Colombia": {"Salomé (Mujer)": "es-CO-SalomeNeural", "Gonzalo (Hombre)": "es-CO-GonzaloNeural"},
+    "México": {"Dalia (Mujer)": "es-MX-DaliaNeural", "Jorge (Hombre)": "es-MX-JorgeNeural"},
+    "Argentina": {"Elena (Mujer)": "es-AR-ElenaNeural", "Tomas (Hombre)": "es-AR-TomasNeural"},
+    "España": {"Elvira (Mujer)": "es-ES-ElviraNeural", "Alvaro (Hombre)": "es-ES-AlvaroNeural"},
+    "USA Latino": {"Paloma (Mujer)": "es-US-PalomaNeural", "Alonso (Hombre)": "es-US-AlonsoNeural"},
+    "Otros Países": {"Venezuela - Paola": "es-VE-PaolaNeural", "Perú - Camila": "es-PE-CamilaNeural", "Chile - Catalina": "es-CL-CatalinaNeural"}
 }
 
 VOCES_EXTRANJERAS_ESTRUCTURA = {
-    "Inglés (USA)": {
-        "Jenny (Mujer)": {"code": "en-US-JennyNeural", "lang": "en"},
-        "Guy (Hombre)":  {"code": "en-US-GuyNeural",   "lang": "en"}
-    },
-    "Inglés (UK)": {
-        "Ryan (Hombre)": {"code": "en-GB-RyanNeural", "lang": "en"},
-        "Sonia (Mujer)": {"code": "en-GB-SoniaNeural", "lang": "en"}
-    },
-    "Francés": {
-        "Denise (Francia)": {"code": "fr-FR-DeniseNeural", "lang": "fr"},
-        "Henri (Francia)":  {"code": "fr-FR-HenriNeural",  "lang": "fr"}
-    },
-    "Portugués": {
-        "Francisca (Brasil)": {"code": "pt-BR-FranciscaNeural", "lang": "pt"},
-        "Raquel (Portugal)":  {"code": "pt-PT-RaquelNeural",    "lang": "pt"}
-    },
-    "Otros Idiomas": {
-        "Italiano - Isabella": {"code": "it-IT-IsabellaNeural", "lang": "it"},
-        "Alemán - Katja":      {"code": "de-DE-KatjaNeural",    "lang": "de"}
-    }
+    "Inglés (USA)": {"Jenny (Mujer)": {"code": "en-US-JennyNeural", "lang": "en"}, "Guy (Hombre)": {"code": "en-US-GuyNeural", "lang": "en"}},
+    "Inglés (UK)": {"Ryan (Hombre)": {"code": "en-GB-RyanNeural", "lang": "en"}, "Sonia (Mujer)": {"code": "en-GB-SoniaNeural", "lang": "en"}},
+    "Francés": {"Denise (Francia)": {"code": "fr-FR-DeniseNeural", "lang": "fr"}, "Henri (Francia)": {"code": "fr-FR-HenriNeural", "lang": "fr"}},
+    "Portugués": {"Francisca (Brasil)": {"code": "pt-BR-FranciscaNeural", "lang": "pt"}, "Raquel (Portugal)": {"code": "pt-PT-RaquelNeural", "lang": "pt"}},
+    "Otros Idiomas": {"Italiano - Isabella": {"code": "it-IT-IsabellaNeural", "lang": "it"}, "Alemán - Katja": {"code": "de-DE-KatjaNeural", "lang": "de"}}
 }
 VOCES_EXTRANJERAS_ESTRUCTURA["Español (Latino/España)"] = {}
 for pais, voces in VOCES_LATINAS_ESTRUCTURA.items():
@@ -135,7 +101,7 @@ for pais, voces in VOCES_LATINAS_ESTRUCTURA.items():
         VOCES_EXTRANJERAS_ESTRUCTURA["Español (Latino/España)"][clave_nueva] = {"code": codigo, "lang": "es"}
 
 
-# --- 3. FUNCIONES LÓGICAS ---
+# --- 3. FUNCIONES ---
 def extraer_texto_archivo(uploaded_file):
     try:
         texto = ""
@@ -143,12 +109,10 @@ def extraer_texto_archivo(uploaded_file):
             texto = str(uploaded_file.read(), "utf-8")
         elif uploaded_file.type == "application/pdf":
             pdf_reader = PyPDF2.PdfReader(uploaded_file)
-            for page in pdf_reader.pages:
-                texto += page.extract_text() + "\n"
+            for page in pdf_reader.pages: texto += page.extract_text() + "\n"
         elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
             doc = docx.Document(uploaded_file)
-            for para in doc.paragraphs:
-                texto += para.text + "\n"
+            for para in doc.paragraphs: texto += para.text + "\n"
         return texto
     except Exception as e:
         return f"Error leyendo archivo: {e}"
@@ -166,40 +130,25 @@ async def generar_audio_engine(texto, voz, velocidad, tono):
         comunicacion = edge_tts.Communicate(text=texto, voice=voz, rate=rate_str, pitch=pitch_str)
         mp3_fp = io.BytesIO()
         async for chunk in comunicacion.stream():
-            if chunk["type"] == "audio":
-                mp3_fp.write(chunk["data"])
+            if chunk["type"] == "audio": mp3_fp.write(chunk["data"])
         return mp3_fp.getvalue()
-    except Exception:
-        return None
+    except Exception: return None
 
 def reset_rate(): st.session_state.rate_val = 0
 def reset_pitch(): st.session_state.pitch_val = 0
 
-# --- 4. INTERFAZ ACCESIBLE ---
+# --- 4. INTERFAZ ---
 col_izq, col_der = st.columns(2, gap="small")
 
 with col_izq:
     st.markdown("### 1. Panel de Origen")
-    
-    # FILTROS ORIGEN
-    pais_origen = st.selectbox(
-        "Paso 1: Seleccione el País o Región de origen", 
-        list(VOCES_LATINAS_ESTRUCTURA.keys()),
-        help="Filtrar las voces por país ayuda a navegar la lista más rápido."
-    )
-    
+    pais_origen = st.selectbox("Paso 1: Seleccione el País o Región de origen", list(VOCES_LATINAS_ESTRUCTURA.keys()), help="Filtro de país.")
     voces_disponibles_origen = VOCES_LATINAS_ESTRUCTURA[pais_origen]
-    voz_org_nombre_corta = st.selectbox(
-        f"Paso 2: Seleccione la voz de {pais_origen}", 
-        list(voces_disponibles_origen.keys()),
-        help="Elija la persona que leerá el texto."
-    )
+    voz_org_nombre_corta = st.selectbox(f"Paso 2: Seleccione la voz de {pais_origen}", list(voces_disponibles_origen.keys()), help="Selección de voz.")
     voz_org_code = voces_disponibles_origen[voz_org_nombre_corta]
     voz_org_nombre_completa = f"{pais_origen} - {voz_org_nombre_corta}"
     
-    # PESTAÑAS
     tab_escribir, tab_subir = st.tabs(["✍️ Escribir Texto", "📂 Subir Archivo"])
-    
     with tab_subir:
         archivo = st.file_uploader("Cargar documento (TXT, PDF, Word)", type=["txt", "pdf", "docx"])
         if archivo is not None:
@@ -207,51 +156,23 @@ with col_izq:
             if texto_extraido:
                 st.session_state.contenido_fuente = texto_extraido
                 st.success("Documento cargado.")
-
     with tab_escribir:
-        def actualizar_texto():
-            st.session_state.contenido_fuente = st.session_state.txt_input_widget
-            
-        texto_usuario = st.text_area(
-            "Escriba o pegue el texto aquí", 
-            value=st.session_state.contenido_fuente,
-            height=300, 
-            key="txt_input_widget",
-            on_change=actualizar_texto,
-            help="Texto principal a convertir."
-        )
+        def actualizar_texto(): st.session_state.contenido_fuente = st.session_state.txt_input_widget
+        texto_usuario = st.text_area("Escriba o pegue el texto aquí", value=st.session_state.contenido_fuente, height=300, key="txt_input_widget", on_change=actualizar_texto, help="Cuadro de edición de texto.")
         texto_a_procesar = st.session_state.contenido_fuente
 
 with col_der:
     st.markdown("### 2. Panel de Destino")
-    
-    # FILTROS DESTINO
-    idioma_destino = st.selectbox(
-        "Paso 1: Seleccione el Idioma de destino", 
-        list(VOCES_EXTRANJERAS_ESTRUCTURA.keys()),
-        help="Seleccione a qué idioma desea traducir."
-    )
-    
+    idioma_destino = st.selectbox("Paso 1: Seleccione el Idioma de destino", list(VOCES_EXTRANJERAS_ESTRUCTURA.keys()), help="Filtro de idioma.")
     voces_disponibles_destino = VOCES_EXTRANJERAS_ESTRUCTURA[idioma_destino]
-    voz_dest_nombre_corta = st.selectbox(
-        f"Paso 2: Seleccione la voz para {idioma_destino}", 
-        list(voces_disponibles_destino.keys()),
-        help="Elija la voz que leerá la traducción."
-    )
-    
+    voz_dest_nombre_corta = st.selectbox(f"Paso 2: Seleccione la voz para {idioma_destino}", list(voces_disponibles_destino.keys()), help="Selección de voz destino.")
     datos_voz_dest = voces_disponibles_destino[voz_dest_nombre_corta]
     voz_dest_code = datos_voz_dest["code"]
     lang_dest = datos_voz_dest["lang"]
     voz_dest_nombre_completa = f"{idioma_destino} - {voz_dest_nombre_corta}"
+    st.text_area("Texto resultante de la traducción", value=st.session_state.texto_traducido, height=368, help="Solo lectura.")
 
-    st.text_area(
-        "Texto resultante de la traducción", 
-        value=st.session_state.texto_traducido, 
-        height=368,
-        help="Aquí aparecerá el texto traducido automáticamente."
-    )
-
-# CONTROLES MEJORADOS
+# CONTROLES
 st.markdown("---")
 c_ajustes, c_boton = st.columns([2, 1], gap="medium")
 
@@ -261,13 +182,13 @@ with c_ajustes:
     with k1:
         s1, b1 = st.columns([5,1])
         velocidad = s1.slider("Velocidad", -100, 100, key="rate_val", step=1, help="Velocidad de lectura")
-        # BOTÓN PEQUEÑO CON ETIQUETA '↺' PERO AYUDA DESCRIPTIVA
-        b1.button("↺", key="rv", on_click=reset_rate, help="Restablecer velocidad a cero")
+        # BOTÓN R PARA RESTABLECER VELOCIDAD
+        b1.button("R", key="rv", on_click=reset_rate, help="Restablecer velocidad a cero")
     with k2:
         s2, b2 = st.columns([5,1])
         tono = s2.slider("Tono (Pitch)", -50, 50, key="pitch_val", step=1, help="Agudeza de la voz")
-        # BOTÓN PEQUEÑO CON ETIQUETA '↺' PERO AYUDA DESCRIPTIVA
-        b2.button("↺", key="rp", on_click=reset_pitch, help="Restablecer tono a cero")
+        # BOTÓN R PARA RESTABLECER TONO
+        b2.button("R", key="rp", on_click=reset_pitch, help="Restablecer tono a cero")
 
 with c_boton:
     st.write("") 
@@ -279,15 +200,11 @@ with c_boton:
             with st.spinner('Procesando...'):
                 try:
                     # Traducción
-                    if lang_dest == 'es':
-                        resultado_traduccion = texto_a_procesar
+                    if lang_dest == 'es': resultado_traduccion = texto_a_procesar
                     else:
                         translator = GoogleTranslator(source='auto', target=lang_dest)
-                        if len(texto_a_procesar) > 4500:
-                            st.warning("Texto cortado a 4500 caracteres.")
-                            resultado_traduccion = translator.translate(texto_a_procesar[:4500])
-                        else:
-                            resultado_traduccion = translator.translate(texto_a_procesar)
+                        if len(texto_a_procesar) > 4500: resultado_traduccion = translator.translate(texto_a_procesar[:4500])
+                        else: resultado_traduccion = translator.translate(texto_a_procesar)
 
                     st.session_state.texto_traducido = resultado_traduccion
 
@@ -314,11 +231,23 @@ with c_boton:
                             "dest_name": fn_dest
                         })
                         
-                        # --- NOTIFICACIÓN DE FINALIZACIÓN ---
-                        st.toast("¡Tarea completada con éxito!", icon="✅")
-                        st.success("¡Tarea finalizada! Los audios y la traducción están listos al final de la pantalla.") 
+                        # --- ANUNCIO DE FINALIZACIÓN PARA JAWS (ARIA LIVE REGION) ---
+                        # Inyectamos un div invisible con role="alert". Esto fuerza a JAWS a leerlo inmediatamente.
+                        st.markdown("""
+                            <div role="alert" style="border:1px solid transparent; padding:0.5rem; background-color: #d4edda; color: #155724; font-weight: bold; text-align: center; margin-bottom: 10px;">
+                                ¡Tarea finalizada con éxito! Los audios están listos al final de la pantalla.
+                            </div>
+                        """, unsafe_allow_html=True)
                         
-                        st.rerun()
+                        # Mantenemos el toast visual por si acaso
+                        st.toast("¡Tarea completada!", icon="✅")
+                        # Recarga necesaria para mostrar los audios
+                        # (Nota: en Streamlit, el 'alert' puede leerse justo antes de la recarga. 
+                        # Si JAWS se corta, es porque 'st.rerun()' refresca la página muy rápido.
+                        # En ese caso, confiamos en que el 'alert' aparece en el nuevo renderizado).
+                        
+                        # IMPORTANTE: Eliminé el st.rerun() inmediato aquí para permitir que el mensaje se renderice y JAWS lo lea.
+                        # Al quitar st.rerun(), Streamlit renderizará el resto del script (los audios) en esta misma ejecución.
 
                 except Exception as e:
                     st.error(f"Error: {e}")
