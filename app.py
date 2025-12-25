@@ -31,15 +31,15 @@ if 'clean_start' not in st.session_state:
 # --- 1. CABECERA Y DISEÑO (CSS Accesible) ---
 css_accesible = """
 <style>
-/* Etiquetas grandes y claras para lectores de pantalla */
+/* Etiquetas grandes y claras */
 .stSelectbox label, .stTextArea label, .stSlider label {
     font-size: 1.1rem !important;
     font-weight: bold !important;
     color: #FFFFFF !important; 
     margin-bottom: 0.4rem !important;
 }
-/* Foco visible de alto contraste (Criterio WCAG) */
-div[data-baseweb="select"] > div:focus-within, textarea:focus, input:focus {
+/* Foco visible de alto contraste (Criterio WCAG para baja visión) */
+div[data-baseweb="select"] > div:focus-within, textarea:focus, input:focus, button:focus {
     outline: 3px solid #FFFF00 !important; /* Amarillo para máximo contraste */
     outline-offset: 2px;
 }
@@ -78,7 +78,6 @@ else:
 
 
 # --- 2. VOCES ORGANIZADAS POR CATEGORÍA ---
-# Estructura: PAÍS -> LISTA DE VOCES
 VOCES_LATINAS_ESTRUCTURA = {
     "Colombia": {
         "Salomé (Mujer)": "es-CO-SalomeNeural",
@@ -129,7 +128,6 @@ VOCES_EXTRANJERAS_ESTRUCTURA = {
         "Alemán - Katja":      {"code": "de-DE-KatjaNeural",    "lang": "de"}
     }
 }
-# Agregamos opción de 'Español' al destino copiando la estructura latina
 VOCES_EXTRANJERAS_ESTRUCTURA["Español (Latino/España)"] = {}
 for pais, voces in VOCES_LATINAS_ESTRUCTURA.items():
     for nombre_voz, codigo in voces.items():
@@ -183,14 +181,13 @@ col_izq, col_der = st.columns(2, gap="small")
 with col_izq:
     st.markdown("### 1. Panel de Origen")
     
-    # --- FILTRO EN CASCADA 1 (PAÍS) ---
+    # FILTROS ORIGEN
     pais_origen = st.selectbox(
         "Paso 1: Seleccione el País o Región de origen", 
         list(VOCES_LATINAS_ESTRUCTURA.keys()),
         help="Filtrar las voces por país ayuda a navegar la lista más rápido."
     )
     
-    # --- FILTRO EN CASCADA 2 (VOZ) ---
     voces_disponibles_origen = VOCES_LATINAS_ESTRUCTURA[pais_origen]
     voz_org_nombre_corta = st.selectbox(
         f"Paso 2: Seleccione la voz de {pais_origen}", 
@@ -198,9 +195,9 @@ with col_izq:
         help="Elija la persona que leerá el texto."
     )
     voz_org_code = voces_disponibles_origen[voz_org_nombre_corta]
-    voz_org_nombre_completa = f"{pais_origen} - {voz_org_nombre_corta}" # Para el nombre del archivo
+    voz_org_nombre_completa = f"{pais_origen} - {voz_org_nombre_corta}"
     
-    # Pestañas
+    # PESTAÑAS
     tab_escribir, tab_subir = st.tabs(["✍️ Escribir Texto", "📂 Subir Archivo"])
     
     with tab_subir:
@@ -228,14 +225,13 @@ with col_izq:
 with col_der:
     st.markdown("### 2. Panel de Destino")
     
-    # --- FILTRO EN CASCADA 1 (IDIOMA) ---
+    # FILTROS DESTINO
     idioma_destino = st.selectbox(
         "Paso 1: Seleccione el Idioma de destino", 
         list(VOCES_EXTRANJERAS_ESTRUCTURA.keys()),
         help="Seleccione a qué idioma desea traducir."
     )
     
-    # --- FILTRO EN CASCADA 2 (VOZ) ---
     voces_disponibles_destino = VOCES_EXTRANJERAS_ESTRUCTURA[idioma_destino]
     voz_dest_nombre_corta = st.selectbox(
         f"Paso 2: Seleccione la voz para {idioma_destino}", 
@@ -255,7 +251,7 @@ with col_der:
         help="Aquí aparecerá el texto traducido automáticamente."
     )
 
-# CONTROLES
+# CONTROLES MEJORADOS
 st.markdown("---")
 c_ajustes, c_boton = st.columns([2, 1], gap="medium")
 
@@ -265,11 +261,13 @@ with c_ajustes:
     with k1:
         s1, b1 = st.columns([5,1])
         velocidad = s1.slider("Velocidad", -100, 100, key="rate_val", step=1, help="Velocidad de lectura")
-        b1.button("Restablecer Vel", key="rv", on_click=reset_rate)
+        # BOTÓN PEQUEÑO CON ETIQUETA '↺' PERO AYUDA DESCRIPTIVA
+        b1.button("↺", key="rv", on_click=reset_rate, help="Restablecer velocidad a cero")
     with k2:
         s2, b2 = st.columns([5,1])
         tono = s2.slider("Tono (Pitch)", -50, 50, key="pitch_val", step=1, help="Agudeza de la voz")
-        b2.button("Restablecer Tono", key="rp", on_click=reset_pitch)
+        # BOTÓN PEQUEÑO CON ETIQUETA '↺' PERO AYUDA DESCRIPTIVA
+        b2.button("↺", key="rp", on_click=reset_pitch, help="Restablecer tono a cero")
 
 with c_boton:
     st.write("") 
@@ -315,7 +313,11 @@ with c_boton:
                             "org_name": fn_org,
                             "dest_name": fn_dest
                         })
-                        st.success("Proceso finalizado. Audios listos abajo.") # Aviso para el lector de pantalla
+                        
+                        # --- NOTIFICACIÓN DE FINALIZACIÓN ---
+                        st.toast("¡Tarea completada con éxito!", icon="✅")
+                        st.success("¡Tarea finalizada! Los audios y la traducción están listos al final de la pantalla.") 
+                        
                         st.rerun()
 
                 except Exception as e:
