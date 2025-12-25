@@ -28,66 +28,55 @@ if 'clean_start' not in st.session_state:
     st.session_state.contenido_fuente = "" 
     st.session_state.clean_start = True
 
-# --- 1. GESTIÓN DE ESTILOS (SOLUCIÓN DEFINITIVA) ---
-def inyectar_estilos(tema):
-    # CSS BASE (Común para todos) - Sin espacios al inicio para evitar errores
-    css_comun = """
-    <style>
-    .stSelectbox label, .stTextArea label, .stSlider label { font-size: 1.1rem !important; font-weight: bold !important; margin-bottom: 0.4rem !important; }
-    div[data-baseweb="select"] > div:focus-within, textarea:focus, input:focus, button:focus { outline: 3px solid #FFFF00 !important; outline-offset: 2px; }
-    .block-container { padding-top: 3rem !important; padding-bottom: 2rem !important; }
-    div[data-testid="stVerticalBlock"] { gap: 1.5rem !important; }
-    textarea { font-size: 1.2rem !important; }
-    </style>
-    """
-    
-    # CSS ESPECÍFICO
-    if "Negro" in tema:
-        # MODO OLED (Alto Contraste)
-        css_tema = """
-        <style>
-        .stApp { background-color: #000000; color: #E0E0E0; }
-        div[data-testid="stTextArea"] textarea { background-color: #111111; color: #FFFFFF; border: 1px solid #333333; }
-        div[data-testid="stSelectbox"] > div > div { background-color: #111111; color: white; }
-        div[data-testid="stSlider"] > div { color: #E0E0E0; }
-        h1, h2, h3, h4, h5, label, .stMarkdown, p { color: #FFFFFF !important; }
-        
-        /* BOTÓN PROCESAR (Amarillo/Negro) */
-        div.stButton > button[kind="primary"] {
-            background-color: #FFD700 !important;
-            color: #000000 !important;
-            font-weight: 900 !important;
-            border: 2px solid #FFFFFF;
-        }
-        div.stButton > button[kind="primary"]:hover {
-            background-color: #FFC000 !important;
-            color: #000000 !important;
-            border: 2px solid #FFFF00;
-        }
-        </style>
-        """
-    elif "Claro" in tema:
-        # MODO CLARO
-        css_tema = """
-        <style>
-        .stApp { background-color: #FFFFFF; color: #000000; } 
-        label, h1, h2, h3, p { color: #000000 !important; }
-        
-        /* BOTÓN PROCESAR (Azul/Blanco) */
-        div.stButton > button[kind="primary"] {
-            background-color: #0056b3 !important;
-            color: #FFFFFF !important;
-            font-weight: bold !important;
-        }
-        </style>
-        """
-    else:
-        css_tema = ""
+# --- 1. ESTILOS CSS (GLOBALES Y SIN SANGRÍA) ---
+# Definimos los estilos aquí, pegados a la izquierda, para evitar errores visuales.
 
-    # Inyección limpia
-    st.markdown(css_comun + css_tema, unsafe_allow_html=True)
+CSS_BASE = """
+<style>
+.stSelectbox label, .stTextArea label, .stSlider label { font-size: 1.1rem !important; font-weight: bold !important; margin-bottom: 0.4rem !important; }
+div[data-baseweb="select"] > div:focus-within, textarea:focus, input:focus, button:focus { outline: 3px solid #FFFF00 !important; outline-offset: 2px; }
+.block-container { padding-top: 3rem !important; padding-bottom: 2rem !important; }
+div[data-testid="stVerticalBlock"] { gap: 1.5rem !important; }
+textarea { font-size: 1.2rem !important; }
+</style>
+"""
 
-# --- 2. CABECERA ---
+CSS_OLED = """
+<style>
+.stApp { background-color: #000000; color: #E0E0E0; }
+div[data-testid="stTextArea"] textarea { background-color: #111111; color: #FFFFFF; border: 1px solid #333333; }
+div[data-testid="stSelectbox"] > div > div { background-color: #111111; color: white; }
+div[data-testid="stSlider"] > div { color: #E0E0E0; }
+h1, h2, h3, h4, h5, label, .stMarkdown, p { color: #FFFFFF !important; }
+/* BOTÓN PROCESAR (Amarillo/Negro - Alto Contraste) */
+div.stButton > button[kind="primary"] {
+    background-color: #FFD700 !important;
+    color: #000000 !important;
+    font-weight: 900 !important;
+    border: 2px solid #FFFFFF;
+}
+div.stButton > button[kind="primary"]:hover {
+    background-color: #FFC000 !important;
+    color: #000000 !important;
+    border: 2px solid #FFFF00;
+}
+</style>
+"""
+
+CSS_CLARO = """
+<style>
+.stApp { background-color: #FFFFFF; color: #000000; } 
+label, h1, h2, h3, p { color: #000000 !important; }
+/* BOTÓN PROCESAR (Azul/Blanco) */
+div.stButton > button[kind="primary"] {
+    background-color: #0056b3 !important;
+    color: #FFFFFF !important;
+    font-weight: bold !important;
+}
+</style>
+"""
+
+# --- 2. CABECERA Y SELECCIÓN DE TEMA ---
 c_tit, c_sel = st.columns([6, 2], gap="medium")
 with c_tit:
     st.markdown("<h1>🎚️ Studio Voz Master</h1>", unsafe_allow_html=True)
@@ -95,8 +84,13 @@ with c_sel:
     st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
     tema_sel = st.selectbox("Apariencia visual", ["OLED (Negro)", "Claro", "Sistema"], help="Cambia el contraste y colores.")
 
-# Aplicar estilos INMEDIATAMENTE
-inyectar_estilos(tema_sel)
+# Inyectamos el estilo seleccionado
+if "Negro" in tema_sel:
+    st.markdown(CSS_BASE + CSS_OLED, unsafe_allow_html=True)
+elif "Claro" in tema_sel:
+    st.markdown(CSS_BASE + CSS_CLARO, unsafe_allow_html=True)
+else:
+    st.markdown(CSS_BASE, unsafe_allow_html=True)
 
 
 # --- 3. DATOS DE VOCES ---
@@ -217,13 +211,11 @@ with c_boton:
                     if lang_dest == 'es': resultado_traduccion = texto_a_procesar
                     else:
                         translator = GoogleTranslator(source='auto', target=lang_dest)
-                        # Control de longitud para traducción gratuita
                         if len(texto_a_procesar) > 4500: resultado_traduccion = translator.translate(texto_a_procesar[:4500])
                         else: resultado_traduccion = translator.translate(texto_a_procesar)
 
                     st.session_state.texto_traducido = resultado_traduccion
                     
-                    # Generación de audios
                     audio_es = asyncio.run(generar_audio_engine(texto_a_procesar, voz_org_code, velocidad, tono))
                     audio_tr = asyncio.run(generar_audio_engine(resultado_traduccion, voz_dest_code, velocidad, tono))
 
@@ -254,7 +246,6 @@ with c_boton:
                             # Fondo Verde Claro para Modo Claro
                             estilo_alerta = "background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;"
 
-                        # Usamos st.markdown con HTML directo para forzar la lectura con JAWS
                         st.markdown(f"""
                             <div role="alert" style="{estilo_alerta} padding: 15px; border-radius: 5px; text-align: center; margin-bottom: 20px; font-weight: bold;">
                                 ✅ Tarea finalizada con éxito. Los audios están listos al final de la pantalla.
